@@ -1,0 +1,15 @@
+{
+  "name": "NobleClass",
+  "version": "0.1.0",
+  "description": "A Class implementation inspired by Backbone classes",
+  "main": "index.js",
+  "keywords": [
+    "class",
+    "prototype",
+    "inheritence",
+    "constructor",
+    "es5",
+    "oop",
+    "object-oriented"
+  ]
+}
