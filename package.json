@@ -19,6 +19,18 @@
     "oop",
     "object-oriented"
   ],
+  "testling": {
+    "files": "test/index.js",
+    "harness": "mocha",
+    "browsers": [
+        "ie9", "ie10",
+        "firefox/4", "firefox/15", "firefox/20", "firefox/nightly",
+        "chrome/1", "chrome/20", "chrome/25", "chrome/canary",
+        "safari/5.1", "safari/6", "safari/nightly",
+        "opera/12", "opera/12.10", "opera/next",
+        "ipad/6.0", "iphone/6.0", "android-browser/4.2"
+    ]
+  },
   "author": "Keith Cirkel",
   "license": "MIT",
   "devDependencies": {
