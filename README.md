@@ -45,7 +45,7 @@ AnotherThing = AThing.extend({
 
     someProtoMethod: function () { AnotherThing.super.someProtoMethod.call(this); /*...*/ }
 
-}. {
+}, {
     staticProperty: true
 });
 
@@ -60,7 +60,7 @@ used like so:
 ```javascript
 var Class = require('NobleClass');
 
-AnotherThing = AThing.extend({
+AnotherThing = Class.extend({
 
     get name() {
         return this._name;
