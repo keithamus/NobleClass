@@ -172,6 +172,18 @@ describe('Class', sandbox(function () {
 
         });
 
+        it('does not copy over read-only properties', function () {
+
+            Extended = Class.extend({ name: 'a', length: 4 });
+
+            Extended.name
+                .should.equal('subClass');
+
+            Extended.length
+                .should.equal(0);
+
+        });
+
         describe('a child inheriting from child (multiple inheritence)', function () {
             var ExtendedChild;
 

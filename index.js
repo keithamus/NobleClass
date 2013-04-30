@@ -6,7 +6,8 @@
 
     function nobleClassExtendProps(onto, from/*...*/) {
         for (var props = Object.getOwnPropertyNames(from), pL = props.length, n = 0; n < pL; ++n) {
-            if (props[n] !== 'super' && props[n] !== 'name') {
+            var replace = Object.getOwnPropertyDescriptor(onto, props[n]);
+            if (!replace || replace.writable) {
                 prop(onto, props[n], Object.getOwnPropertyDescriptor(from, props[n]));
             }
         }
