@@ -5,7 +5,8 @@
   "homepage": "http://github.com/keithamus/NobleClass",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "doc": "docco index.js --output . --css doc_theme/main.css -l linear && cat doc_theme/mocha-before.html > test.html && mocha  --reporter doc >> test.html && cat doc_theme/mocha-after.html >> test.html"
   },
   "repository": {
     "type": "git",
