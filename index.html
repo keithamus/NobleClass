@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>NobleClass</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="main.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        
+          
+          <h1>NobleClass</h1>
+
+          
+        
+
+        
+      </div>
+
+      
+        
+        <blockquote>
+<p>© Keith Cirkel</p>
+<p>NobleClass may be freely distributed under the MIT license.</p>
+<p>For all details and documentation:
+<a href="http://github.com/keithamus/NobleClass">http://github.com/keithamus/NobleClass</a></p>
+</blockquote>
+<p>NobleClass is a simple Class implementation inspired by Backbone &amp; NodeJS, but using ES5
+features. This means it copies property values such as enumerability and writability across
+classes. It also has proper prototypal inheritence using Object.create.</p>
+<p>It comes with a complete EventEmitter implementation, similar to Backbone&#39;s, but also borrowing
+some bits from Node&#39;s EventEmitter. It features <code>on</code>, <code>off</code>, <code>once</code> and <code>emit</code>.</p>
+<p>It is more comprehensive than a simple <code>util.inherits()</code> in Node, as it allows
+you to cleanly express additional prototype &amp; static properties, and also
+inherits static properties from the parent class. The built in EventEmitter is
+also useful as it offers additional benefits to EventEmitter (explianed later)
+and works in the browser.</p>
+<p>I suppose some of you are asking &quot;Why? There are plenty of decent Class
+implementations around, even some ES5 ones, even ones with EventEmitters etc&quot;.
+This is true, mostly. But none do it how I wanted to do it. Don&#39;t like how I&#39;ve
+done it? That&#39;s fine, use another, or write your own, or fork mine!</p>
+<p>Below is the heavily commented codebase for NobleClass, which you can use for documentation.
+Failing that, you can also have a look at the <a href="test.html">test generated documentation</a></p>
+
+        
+          <div class='highlight'><pre><span class="comment">/*globals window: true*/</span>
+(<span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>
+    <span class="string">'use strict'</span>;</pre></div>
+        
+      
+        
+        <p>Shortcuts for Object.* methods, used frequently.</p>
+
+        
+          <div class='highlight'><pre>    <span class="keyword">var</span> prop = Object.defineProperty,
+        getPropDesc = Object.getOwnPropertyDescriptor;</pre></div>
+        
+      
+        
+        <h2>NobleClass Constructor</h2>
+
+        
+      
+        
+        <p>Does nothing, just here to be a class.</p>
+
+        
+          <div class='highlight'><pre>    <span class="function"><span class="keyword">function</span> <span class="title">NobleClass</span><span class="params">()</span> {</span>}</pre></div>
+        
+      
+        
+        <h2>Events</h2>
+
+        
+      
+        
+        <p>Regular expression used to split event strings (see below). Cached here for performance.</p>
+
+        
+          <div class='highlight'><pre>    <span class="keyword">var</span> eventSplitter = <span class="regexp">/\s+/</span>;</pre></div>
+        
+      
+        
+        <h4>nobleClassDispatchEventObject</h4>
+
+        
+      
+        
+        <p>This takes munged event arguments, such as having an object of events or multiple events in
+one string, and splits the out into simple event arguments to dispatch to the respective
+event function. All event binding functions (on/off/once) call this first to clean up their
+argument array.</p>
+
+        
+          <div class='highlight'><pre>    <span class="function"><span class="keyword">function</span> <span class="title">nobleClassDispatchEventObject</span><span class="params">(obj, action, evts, cb, ctx)</span> {</span></pre></div>
+        
+      
+        
+        <p>If the event name is just a normal event name, this function is effectively a NoOp.</p>
+
+        
+          <div class='highlight'><pre>        <span class="keyword">if</span> (!evts || <span class="keyword">typeof</span> evts === <span class="string">'string'</span> &amp;&amp; !eventSplitter.test(evts)) <span class="keyword">return</span> <span class="literal">false</span>;</pre></div>
+        
+      
+        
+        <p>If the evts is an object of events, then the callbacks are values inside the event
+argument, so do shuffle the arguments to ensure ctx is actually the context.</p>
+
+        
+          <div class='highlight'><pre>        <span class="keyword">if</span> (<span class="keyword">typeof</span> evts === <span class="string">'object'</span> &amp;&amp; <span class="keyword">typeof</span> cb === <span class="string">'object'</span> &amp;&amp; <span class="keyword">typeof</span> ctx === <span class="string">'undefined'</span>) {
+            ctx = cb;
+            cb = <span class="literal">null</span>;
+        }</pre></div>
+        
+      
+        
+        <p>Either evts is an object, with the event names as keys on the object, and callbacks as
+values of those keys, or it is a string of space separated event names. Either way a
+simple array of event names can be generated to iterate over the events names.</p>
+
+        
+          <div class='highlight'><pre>        <span class="keyword">var</span> evN = <span class="keyword">typeof</span> evts === <span class="string">'string'</span> ? evts.split(eventSplitter) : Object.keys(evts);</pre></div>
+        
+      
+        
+        <p>With the event name list, iterate over each event name and call .on/.off/.once with the
+normalised arguments.</p>
+
+        
+          <div class='highlight'><pre>        <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>, l = evN.length; i &lt; l; ++i) {
+            <span class="keyword">if</span> (<span class="keyword">typeof</span> evts === <span class="string">'object'</span>) {</pre></div>
+        
+      
+        
+        <p>This detects if the event object is referring to either function literals, or
+strings which point to function names on <code>ctx</code>, and gets the right value</p>
+
+        
+          <div class='highlight'><pre>                cb = <span class="keyword">typeof</span> evts[evN[i]] === <span class="string">'function'</span> ? evts[evN[i]] : ctx[evts[evN[i]]];
+            }
+            obj[action](evN[i], cb, ctx);
+        }</pre></div>
+        
+      
+        
+        <p>Return true to tell .on/.off/.once this function has done something</p>
+
+        
+          <div class='highlight'><pre>        <span class="keyword">return</span> <span class="literal">true</span>;
+    }</pre></div>
+        
+      
+        
+        <h4>nobleClassEmitEvent</h4>
+
+        
+      
+        
+        <p>Optimise emitting of events for majority usecases where the argument lists are 3 or less
+arguments. This works because <code>&lt;Function&gt;.call()</code> is faster than <code>&lt;Function&gt;.apply()</code>.</p>
+
+        
+          <div class='highlight'><pre>    <span class="function"><span class="keyword">function</span> <span class="title">nobleClassEmitEvent</span><span class="params">(obj, events, args)</span> {</span>
+        <span class="comment">/*jshint maxcomplexity: 10*/</span>
+        <span class="keyword">var</span> i = -<span class="number">1</span>, l = events.length, a1 = args[<span class="number">0</span>], a2 = args[<span class="number">1</span>], a3 = args[<span class="number">2</span>];
+        <span class="keyword">switch</span> (args.length) {
+        <span class="keyword">case</span> <span class="number">0</span>:
+            <span class="keyword">while</span> (++i &lt; l) events[i].cb.call(events[i].ctx || obj);
+            <span class="keyword">return</span>;
+        <span class="keyword">case</span> <span class="number">1</span>:
+            <span class="keyword">while</span> (++i &lt; l) events[i].cb.call(events[i].ctx || obj, a1);
+            <span class="keyword">return</span>;
+        <span class="keyword">case</span> <span class="number">2</span>:
+            <span class="keyword">while</span> (++i &lt; l) events[i].cb.call(events[i].ctx || obj, a1, a2);
+            <span class="keyword">return</span>;
+        <span class="keyword">case</span> <span class="number">3</span>:
+            <span class="keyword">while</span> (++i &lt; l) events[i].cb.call(events[i].ctx || obj, a1, a2, a3);
+            <span class="keyword">return</span>;
+        <span class="keyword">default</span>:
+            <span class="keyword">while</span> (++i &lt; l) events[i].cb.apply(events[i].ctx || obj, args);
+        }
+    }</pre></div>
+        
+      
+        
+        <p>Extend NobleClass to add event emitter functions, and also lock it down so it cannot be
+edited later on.</p>
+
+        
+          <div class='highlight'><pre>    NobleClass.prototype = Object.freeze({
+        constructor: NobleClass,</pre></div>
+        
+      
+        
+        <h4>On</h4>
+
+        
+      
+        
+        <p>On adds a function <code>cb</code> to an event <code>name</code> in the <code>._events</code> stack, with an optional
+&quot;this&quot; context: <code>ctx</code>. Internally it calls <code>nobleClassDispatchEventObject</code> so you can
+give it event objects or multiple event names in one string.</p>
+
+        
+          <div class='highlight'><pre>        on: <span class="function"><span class="keyword">function</span> <span class="title">on</span><span class="params">(name, cb, ctx)</span> {</span></pre></div>
+        
+      
+        
+        <p>Create events as a non-enumerable property (unless it exists).</p>
+
+        
+          <div class='highlight'><pre>            <span class="keyword">this</span>._events || (prop(<span class="keyword">this</span>, <span class="string">'_events'</span>, { value: {}, writable: <span class="literal">true</span> }));</pre></div>
+        
+      
+        
+        <p>Try and pass it through nobleClassDispatchEventObject first, if that doesn&#39;t do
+anything then it&#39;s a nicely formatted call, so add it to the events object.</p>
+
+        
+          <div class='highlight'><pre>            <span class="keyword">if</span> (name &amp;&amp; !nobleClassDispatchEventObject(<span class="keyword">this</span>, <span class="string">'on'</span>, name, cb, ctx)) {
+                <span class="keyword">if</span> (<span class="keyword">typeof</span> cb !== <span class="string">'function'</span>) {
+                    <span class="keyword">throw</span> <span class="keyword">new</span> TypeError(<span class="string">'listener for '</span> + name + <span class="string">' must be a function'</span>);
+                }
+                (<span class="keyword">this</span>._events[name] || (<span class="keyword">this</span>._events[name] = [])).push({ cb: cb, ctx: ctx });
+            }
+            <span class="keyword">return</span> <span class="keyword">this</span>;
+        },</pre></div>
+        
+      
+        
+        <h4>Once</h4>
+
+        
+      
+        
+        <p>Once is essentially the same as on, with the caveat that the listener given will fire
+once and then be removed out of the event listener chain.</p>
+
+        
+          <div class='highlight'><pre>        once: <span class="function"><span class="keyword">function</span> <span class="title">once</span><span class="params">(name, cb, ctx)</span> {</span></pre></div>
+        
+      
+        
+        <p>Try and pass it through nobleClassDispatchEventObject first, if that doesn&#39;t do
+anything then it&#39;s a nicely formatted call, so...</p>
+
+        
+          <div class='highlight'><pre>            <span class="keyword">if</span> (name &amp;&amp; nobleClassDispatchEventObject(<span class="keyword">this</span>, <span class="string">'once'</span>, name, cb, ctx)) <span class="keyword">return</span> <span class="keyword">this</span>;</pre></div>
+        
+      
+        
+        <p>Create a wrapper function for <code>cb</code> that <code>off</code>s itself as soon as it has been
+executed. This cannot be bound to <code>this</code> because then it won&#39;t use <code>ctx</code> for the
+call to <code>cb</code>, so old school <code>_this</code> hackery needs to be used.</p>
+
+        
+          <div class='highlight'><pre>            <span class="keyword">var</span> _<span class="keyword">this</span> = <span class="keyword">this</span>;
+            <span class="keyword">var</span> handleOnce = <span class="function"><span class="keyword">function</span> <span class="title">handleOnce</span><span class="params">()</span> {</span>
+                _<span class="keyword">this</span>.off(name, handleOnce);
+                cb.apply(<span class="keyword">this</span>, arguments);
+            };</pre></div>
+        
+      
+        
+        <p>Add a <code>_cb</code> reference to the underyling function, which can be used in <code>off</code> to
+unbind the function without a reference to the wrapper function.</p>
+
+        
+          <div class='highlight'><pre>            prop(handleOnce, <span class="string">'_cb'</span>, { value: cb });</pre></div>
+        
+      
+        
+        <p>Everything else is just a <code>.on</code>, so call that with the new wrapper function</p>
+
+        
+          <div class='highlight'><pre>            <span class="keyword">return</span> <span class="keyword">this</span>.on(name, handleOnce, ctx);
+        },</pre></div>
+        
+      
+        
+        <h4>Off</h4>
+
+        
+      
+        
+        <p>Off removes event listeners by <code>name</code>, <code>cb</code> function and optionally <code>ctx</code> context from
+the <code>._events</code> object. It calls <code>nobleClassDispatchEventObject</code></p>
+
+        
+          <div class='highlight'><pre>        off: <span class="function"><span class="keyword">function</span> <span class="title">off</span><span class="params">(name, cb, ctx)</span> {</span>
+            <span class="keyword">var</span> events;</pre></div>
+        
+      
+        
+        <p>If <code>name</code> is <code>&quot;*&quot;</code>, then <code>off</code> will unbind every event on the class, the quickest way
+to do that is just assign <code>._events</code> to <code>{}</code>. Also, if <code>._events</code> doesn&#39;t exist then
+it may aswell go down this route to return early.</p>
+
+        
+          <div class='highlight'><pre>            <span class="keyword">if</span> (name === <span class="string">'*'</span> || !<span class="keyword">this</span>._events) {
+                prop(<span class="keyword">this</span>, <span class="string">'_events'</span>, { value: {}, writable: <span class="literal">true</span> });
+                <span class="keyword">return</span> <span class="keyword">this</span>;</pre></div>
+        
+      
+        
+        <p>Try and pass it through nobleClassDispatchEventObject first, if that doesn&#39;t do
+anything then it&#39;s a nicely formatted call, so add it to the events object.
+Capture the event stack for <code>name</code> into the <code>events</code> var because it is about to get
+trashed.</p>
+
+        
+          <div class='highlight'><pre>            } <span class="keyword">else</span> <span class="keyword">if</span> (name &amp;&amp; !nobleClassDispatchEventObject(<span class="keyword">this</span>, <span class="string">'off'</span>, name, cb, ctx) &amp;&amp;
+            (events = <span class="keyword">this</span>._events[name])) {</pre></div>
+        
+      
+        
+        <p>Empty out the events stack for <code>name</code> and repopulate it with all the old events
+that don&#39;t contain <code>cb</code> (with <code>ctx</code> as its context, if supplied). This could be
+done using <code>&lt;Array&gt;.indexOf</code> and <code>&lt;Array&gt;.slice</code> but it&#39;d be more complex and
+slower than a simple for loop + if</p>
+
+        
+          <div class='highlight'><pre>                <span class="keyword">var</span> retain = <span class="keyword">this</span>._events[name] = [];
+                <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>, ev; i &lt; events.length; ++i) {
+                    ev = events[i];
+                    <span class="keyword">if</span> ((cb &amp;&amp; ev.cb !== cb &amp;&amp; ev.cb._cb !== cb) || (ctx &amp;&amp; ctx !== ev.ctx)) {
+                        retain.push(events[i]);
+                    }
+                }</pre></div>
+        
+      
+        
+        <p>If the new events stack is empty, just delete the reference to make future
+events around this faster (mostly a quick return route for emitting)</p>
+
+        
+          <div class='highlight'><pre>                <span class="keyword">if</span> (!retain.length) <span class="keyword">delete</span> <span class="keyword">this</span>._events[name];
+            }</pre></div>
+        
+      
+        
+        <p>Fire an &quot;off:<eventname>&quot; event so subscribers can detect when their listeners have
+been off&#39;d. Pass the old <code>cb</code> and <code>ctx</code> incase the event decides it wants to rebind</p>
+
+        
+          <div class='highlight'><pre>            <span class="keyword">if</span> (<span class="keyword">this</span>._events[<span class="string">'off:'</span> + name]) <span class="keyword">this</span>.emit(<span class="string">'off:'</span> + name, cb, ctx, <span class="keyword">this</span>);
+            <span class="keyword">return</span> <span class="keyword">this</span>;
+        },</pre></div>
+        
+      
+        
+        <h4>Emit</h4>
+
+        
+      
+        
+        <p>Emit fires every function in the array of bound events. It takes - minimally - a <code>name</code>,
+but also takes unlimited extra arguments, which it passes to the bound listeners.</p>
+
+        
+          <div class='highlight'><pre>        emit: <span class="function"><span class="keyword">function</span> <span class="title">emit</span><span class="params">(name)</span> {</span></pre></div>
+        
+      
+        
+        <p>As a special case for error events, when no listeners are bound to an error event,
+then throw the first argument (which <em>should</em> be an Error object).</p>
+
+        
+          <div class='highlight'><pre>            <span class="keyword">if</span> (name === <span class="string">'error'</span> &amp;&amp; !(<span class="keyword">this</span>._events || {}).error) {
+                <span class="keyword">throw</span> arguments[<span class="number">1</span>];</pre></div>
+        
+      
+        
+        <p>Return early if events object, is empty or has no events bound to <code>name</code>.</p>
+
+        
+          <div class='highlight'><pre>            } <span class="keyword">else</span> <span class="keyword">if</span> (!<span class="keyword">this</span>._events || !<span class="keyword">this</span>._events[name]) {
+                <span class="keyword">return</span> <span class="keyword">this</span>;
+            }</pre></div>
+        
+      
+        
+        <p>Fire the event with all other arguments given to <code>emit</code>, also fire an <code>all</code> event
+which includes the real event name as the first argument. Useful for catching events
+for facade classes, to pipe events through to other classes.</p>
+
+        
+          <div class='highlight'><pre>            <span class="keyword">var</span> args = [].slice.call(arguments, <span class="number">1</span>);
+            <span class="keyword">if</span> (<span class="keyword">this</span>._events[name]) nobleClassEmitEvent(<span class="keyword">this</span>, <span class="keyword">this</span>._events[name], args);
+            <span class="keyword">if</span> (<span class="keyword">this</span>._events.all) nobleClassEmitEvent(<span class="keyword">this</span>, <span class="keyword">this</span>._events.all, [name].concat(args));
+            <span class="keyword">return</span> <span class="keyword">this</span>;
+        }
+
+    });</pre></div>
+        
+      
+        
+        <h2>NobleClass Extend</h2>
+
+        
+      
+        
+        <p><code>nobleClassExtendProps</code> is a method to copy property definitions from a <code>from</code> object to a
+<code>onto</code> object. Because it uses Object.getOwnPropertyDescriptor it can also copy getter and
+setter functions (rather than copying their values). Also, it uses Object.getOwnPropertyNames
+meaning it can get non-enumerable properties and copy those over too.</p>
+
+        
+          <div class='highlight'><pre>    <span class="function"><span class="keyword">function</span> <span class="title">nobleClassExtendProps</span><span class="params">(onto, from)</span> {</span>
+        <span class="keyword">for</span> (<span class="keyword">var</span> props = Object.getOwnPropertyNames(from), pL = props.length, n = <span class="number">0</span>; n &lt; pL; ++n) {
+            <span class="keyword">var</span> replace = getPropDesc(onto, props[n]);
+            <span class="keyword">if</span> (!replace || replace.writable) {
+                prop(onto, props[n], getPropDesc(from, props[n]));
+            }
+        }
+    }</pre></div>
+        
+      
+        
+        <p>The <code>.extend</code> function is a non-enumerable static property on NobleClass which is the crux
+of the Class system. <code>.extend</code> always results in a new child class, which is a parent of the
+class it is being called from.</p>
+
+        
+          <div class='highlight'><pre>    prop(NobleClass, <span class="string">'extend'</span>, { configurable: <span class="literal">true</span>, writable: <span class="literal">true</span>, value: <span class="function"><span class="keyword">function</span> <span class="title">nobleClassExtend</span><span class="params">(protoProps, staticProps)</span> {</span>
+        <span class="keyword">var</span> child;</pre></div>
+        
+      
+        
+        <p>If protoProps has a <code>constructor</code> function then this should be used as the basis of the
+child class, but if it doesn&#39;t then a use a default function (<code>subClass</code>) which simply
+calls <code>.super</code>. In most cases you will want to provide a custom constructor.</p>
+
+        
+          <div class='highlight'><pre>        <span class="keyword">if</span> (protoProps &amp;&amp; protoProps.hasOwnProperty(<span class="string">'constructor'</span>)) {
+            child = protoProps.constructor;
+        } <span class="keyword">else</span> {
+            child = <span class="function"><span class="keyword">function</span> <span class="title">subClass</span><span class="params">()</span> {</span> <span class="keyword">return</span> child.super.apply(<span class="keyword">this</span>, arguments); };
+        }</pre></div>
+        
+      
+        
+        <p>Add &quot;.super&quot; static to child. This references the parent class, which allows you to call
+the super class functions inside the child class functions (although you cannot do
+<code>this.super</code>, as it is a static on the class - for memory reasons)</p>
+
+        
+          <div class='highlight'><pre>        prop(child, <span class="string">'super'</span>, { value: <span class="keyword">this</span> });</pre></div>
+        
+      
+        
+        <p>Extend all static props from the parent class, onto the child, and from the <code>staticProps</code>
+object. <code>staticProps</code> comes last so you can override parent class static properties.</p>
+
+        
+          <div class='highlight'><pre>        nobleClassExtendProps(child, <span class="keyword">this</span>);
+        <span class="keyword">if</span> (staticProps) nobleClassExtendProps(child, staticProps);</pre></div>
+        
+      
+        
+        <p>Object.create will create an <code>instanceof</code> reference to the parent, meaning <code>child
+instanceof parent</code> works. It takes an optional set of values. The constructor is composed
+back into the <code>child.prototype</code> here because if it was not supplied in <code>protoProps</code> it
+will not be available in the prototype (up until now)</p>
+
+        
+          <div class='highlight'><pre>        child.prototype = Object.create(<span class="keyword">this</span>.prototype, {
+            constructor: {
+                value: child,
+                enumerable: <span class="literal">false</span>,
+                writable: <span class="literal">true</span>,
+                configurable: <span class="literal">true</span>
+            }
+        });</pre></div>
+        
+      
+        
+        <p>Finally extend all <code>protoProps</code> onto the child.</p>
+
+        
+          <div class='highlight'><pre>        <span class="keyword">if</span> (protoProps) nobleClassExtendProps(child.prototype, protoProps);
+
+        <span class="keyword">return</span> child;
+    }});</pre></div>
+        
+      
+        
+        <h2>Exporting</h2>
+
+        
+      
+        
+        <p>Export out NobleClass into a module.exports module (for Node)
+or a property on the window object (for Browsers)</p>
+
+        
+          <div class='highlight'><pre>    <span class="keyword">if</span> (<span class="keyword">typeof</span> module !== <span class="string">'undefined'</span> &amp;&amp; module.exports) {
+        module.exports = NobleClass;
+    } <span class="keyword">else</span> {
+        (<span class="keyword">typeof</span> window !== <span class="string">'undefined'</span> ? window : global).NobleClass = NobleClass;
+    }
+
+})();</pre></div>
+        
+      
+      <div class="fleur">h</div>
+    </div>
+  </div>
+</body>
+</html>
