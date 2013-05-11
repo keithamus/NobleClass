@@ -5,7 +5,7 @@ if (typeof sandbox === 'undefined') require('./common.js');
 /*globals describe: true, sandbox: true, beforeEach: true, it: true */
 describe('Class', sandbox(function () {
 
-    var Class = typeof require === 'undefined' ? window.NobleClass : require('..'),
+    var Class = typeof require === 'undefined' ? window.NobleClass : require('../index.js'),
         instance, Extended, fn;
 
     it('can be newed up', function () {
