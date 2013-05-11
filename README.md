@@ -1,6 +1,8 @@
 NobleClass
 ----------
 
+[![browser support](https://ci.testling.com/keithamus/NobleClass.png)](https://ci.testling.com/keithamus/NobleClass)
+
 NobleClass is a simple Class implementation inspired by Backbone, but using ES5
 features. This means it copies property values such as enumerability and
 writability across classes. It also has proper prototypal inheritence.
