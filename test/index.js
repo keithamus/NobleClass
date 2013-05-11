@@ -1,4 +1,7 @@
 'use strict';
+// Fix for testling
+if (typeof sandbox === 'undefined') require('./common.js');
+
 /*globals describe: true, sandbox: true, beforeEach: true, it: true */
 describe('Class', sandbox(function () {
 
